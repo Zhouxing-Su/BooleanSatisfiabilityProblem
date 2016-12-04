@@ -13,12 +13,22 @@
 #include <chrono>
 #include <random>
 #include <string>
+#include <ratio>
 
 #include <cstdlib>
 #include <ctime>
 
 
 #pragma region Flag
+//#define TIMER_ENABLE_GET_CPU_TIME  true
+#if TIMER_ENABLE_GET_CPU_TIME
+#ifdef _WIN32   // Windows
+#include <Windows.h>
+#else   // Posix/Linux
+#include <sys/resource.h>
+#include <sys/times.h>
+#endif
+#endif // TIMER_ENABLE_GET_CPU_TIME
 #pragma endregion Flag
 
 
@@ -320,21 +330,49 @@ public:
 class Timer {
 public:
     using Clock = std::chrono::steady_clock;
-    using Millisecond = std::chrono::milliseconds;
     using TimePoint = std::chrono::steady_clock::time_point;
+    using Millisecond = std::chrono::milliseconds;
+    using TickCount = long long;
+    using Duration = double;
 
 
-    static constexpr int MillisecondsPerSecond = 1000;
+    static constexpr TickCount MillisecondsPerSecond = std::milli::den;
+    static constexpr TickCount MicrosecondsPerSecond = std::micro::den;
 
 
     Timer(const Millisecond &duration, const TimePoint &startTime = Clock::now())
         : startTime(startTime), endTime(startTime + duration) {}
-    Timer(int durationInMillisecond, const TimePoint &startTime = Clock::now())
+    Timer(TickCount durationInMillisecond, const TimePoint &startTime = Clock::now())
         : Timer(Millisecond(durationInMillisecond), startTime) {}
 
-    static double durationInSecond(const TimePoint &start, const TimePoint &end) {
-        return std::chrono::duration_cast<Millisecond>(end - start).count() / 1000.0;
+    static double getDuration(const TimePoint &start, const TimePoint &end, Duration tickPerSecond = 1) {
+        return std::chrono::duration_cast<Millisecond>(end - start).count() * tickPerSecond / MillisecondsPerSecond;
     }
+
+    // there is no need to free the pointer. the format of the format string is 
+    // the same as std::strftime() in http://en.cppreference.com/w/cpp/chrono/c/strftime.
+    static const char* getLocalTime(const char *format = "%Y-%m-%d(%a)%H:%M:%S") {
+        static constexpr int DateBufSize = 64;
+        static char buf[DateBufSize];
+        time_t t = time(NULL);
+        tm *date = localtime(&t);
+        strftime(buf, DateBufSize, format, date);
+        return buf;
+    }
+
+    #if TIMER_ENABLE_GET_CPU_TIME
+    static TickCount getCpuTimeInMillisecond() {
+        #ifdef _WIN32   // Windows
+        FILETIME creationTime, exitTime, kernelTime, userTime;
+        GetProcessTimes(GetCurrentProcess(), &creationTime, &exitTime, &kernelTime, &userTime);
+        return ((static_cast<TickCount>(userTime.dwHighDateTime) << (sizeof(int) * 8)) | userTime.dwLowDateTime) / 10;
+        #else   // Posix/Linux
+        rusage r;
+        getrusage(RUSAGE_SELF, &r);
+        return r.ru_utime.tv_sec * MicrosecondsPerSecond + r.ru_utime.tv_usec;
+        #endif
+    }
+    #endif // TIMER_ENABLE_GET_CPU_TIME
 
     bool isTimeOut() const {
         return (Clock::now() > endTime);
@@ -342,6 +380,10 @@ public:
 
     Millisecond restTime() const {
         return std::chrono::duration_cast<Millisecond>(endTime - Clock::now());
+    }
+
+    Millisecond elapsedTime() const {
+        return std::chrono::duration_cast<Millisecond>(Clock::now() - startTime);
     }
 
 

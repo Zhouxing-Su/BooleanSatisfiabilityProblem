@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="std::vector&lt;*&gt;">
+    <DisplayString>{{size={_Mylast - _Myfirst}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]">_Mylast - _Myfirst</Item>
+      <Item Name="[capacity]">_Myend - _Myfirst</Item>
+      <ArrayItems>
+        <Size>_Mylast - _Myfirst</Size>
+        <ValuePointer>_Myfirst</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="std::_Vector_alloc&lt;*&gt;">
+    <DisplayString>{{size={_Mypair._Myval2._Mylast - _Mypair._Myval2._Myfirst}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]">_Mypair._Myval2._Mylast - _Mypair._Myval2._Myfirst</Item>
+      <Item Name="[capacity]">_Mypair._Myval2._Myend - _Mypair._Myval2._Myfirst</Item>
+      <ArrayItems>
+        <Size>_Mypair._Myval2._Mylast - _Mypair._Myval2._Myfirst</Size>
+        <ValuePointer>_Mypair._Myval2._Myfirst</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  
+  <Type Name="szx::Arr&lt;*&gt;">
+    <DisplayString>{{size={len}}}</DisplayString>
+    <Expand>
+      <Item Name="len">len</Item>
+      <ArrayItems>
+        <Size>len</Size>
+        <ValuePointer>arr</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>
